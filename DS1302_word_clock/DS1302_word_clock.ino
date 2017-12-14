@@ -115,10 +115,10 @@ void setup()
 
   gocrazy(); //
 
-  //readTime(); // read current time
-  //updateDisplay(false); // show time on display
+  readTime(); // read current time
+  updateDisplay(false); // show time on display
 
-  lastmin = 0; // initialize last update of display
+  lastmin = minute; // initialize last update of display
 
 }
 
@@ -164,8 +164,8 @@ void updateDisplay(bool timeset) {
   // blank all pixels
   blank();
   
-   // for "typing" light up "ES IST" first
-  if (effect == 2) {
+   // for "typing" or no effect light up "ES IST" first
+  if (effect == 2 || effect == 0) {
     lightup(ES,effect);
     lightup(IST,effect);
   }
@@ -663,7 +663,8 @@ void test() {
   blank();
   wipe();
   blank();
-  //flash(); 
+  gocrazy();
+  blank();
 }
 
 // light up pixels randomly
