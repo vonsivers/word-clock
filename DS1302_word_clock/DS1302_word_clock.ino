@@ -113,7 +113,8 @@ void setup()
 
   //setTime();
 
-  gocrazy(); //
+  //gocrazy(); //
+  test();
 
   readTime(); // read current time
   updateDisplay(false); // show time on display
