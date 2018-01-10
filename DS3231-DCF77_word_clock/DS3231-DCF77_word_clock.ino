@@ -1,5 +1,5 @@
 /* 
- *  Code adapted from WhiteClockCompany WordClock2
+ *  Code by Moritz v. Sivers
 */
 
 // load libraries
@@ -24,9 +24,6 @@
 #define NUMPIXELS     114
 #define BRIGHTNESS    127
 
-// pins for buttons
-//#define PIN_hour    10
-//#define PIN_min     11
 
 // setup LED strip
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ800); 
@@ -87,8 +84,6 @@ int ZEHN_H[] = {99,100,101,102,-1};
 int NEUN[] = {102,103,104,105,-1};
 int UHR[] = {107,108,109,-1};
 
-int flag = 0; //used for display effects to stop it showing more than once
-
 //define colours
 uint32_t Black = pixels.Color(0,0,0);
 uint32_t White = pixels.Color(255,255,255);
@@ -114,34 +109,24 @@ void setup()
 {
   pinMode(DCF_P1, OUTPUT);
   digitalWrite(DCF_P1, LOW);
-  DCF.Start();
-  Wire.begin();
+  
+  Wire.begin(); 
+  
   pixels.begin();
   pixels.setBrightness(BRIGHTNESS);
+  
   matrix.begin();
   matrix.setTextWrap(false);
   matrix.setBrightness(BRIGHTNESS);
-  Serial.begin(9600);
-  //pinMode(PIN_hour, INPUT);
-  //pinMode(PIN_min,INPUT);
-  //digitalWrite(PIN_hour, HIGH);
-  //digitalWrite(PIN_min, HIGH);
-  blank();
   
-  // set the initial time here
-  //year = 2017;
-  //month = 12;
-  //day = 13;
-  //hour = 0;
-  //minute = 0;
-  //second = 0;
-
-  //setTime();
-
-  //gocrazy(); //
+  Serial.begin(9600);
+  
+  blank();
   test(); // LED test
 
-  readTime(); // read current RTC time
+  signalSearch(); // search for DCF77 signal
+
+  c_time = RTC.get(); // read current RTC time
   updateDisplay(false); // show time on display
 
   lastmin = minute(c_time); // initialize last update of display
@@ -153,13 +138,23 @@ void setup()
 void loop()
 {
 
- //readout time and check for pressed buttons
-  readTime();
-  //readButtons();
+ //readout RTC time 
+ c_time = RTC.get();
+
+ // new year gimmick
+ if ( (month(c_time) == 12) && (day(c_time)==31) && (hour(c_time)==23) && (minute(c_time)==59) && (abs(second(c_time)-50)<1) ) {
+  newYear();
+  signalSearch(); // update DCF time once a year
+ }
+
+  // show temperature on second 30
+  if(abs(second(c_time)-30)<1) {
+    displayTemp();
+    updateDisplay(false);
+  }
 
   // update display every minute
   if((minute(c_time) > lastmin) || (minute(c_time) == 0 && lastmin == 59)) {
-    displayTemp();
     updateDisplay(false);
     lastmin = minute(c_time);
   }
@@ -374,55 +369,9 @@ void updateDisplay(bool timeset) {
   // always light up dots last
   setDots(ndots, timeset);
 
-
-  // print time to serial monitor
-  //printTime();
 }
 
 
-// reads if buttons are pressed
-//
-/*
-void readButtons() {
-
-  int minbutton = digitalRead(PIN_min);
-  int hourbutton = digitalRead(PIN_hour);
-
-  if ((minbutton == LOW) && (hourbutton == LOW)) {
-    test();
-  }
-
-
-if (minbutton == LOW) {
-  //Serial.println("Minute button pressed");
-  if (minute(c_time) == 59) {
-    minute(c_time) = 0;
-    }
-  else {
-    minute(c_time)++;
-    }
-    setTime();
-    updateDisplay(true);
-    lastmin = minute(c_time);
-  }
-  
-if (hourbutton == LOW) {
-  //Serial.println("Hour button pressed");
-    if (hour == 23) {
-      hour = 0; 
-    }
-    else { 
-      hour++;
-    }  
-    setTime();
-    updateDisplay(true);
-    lastmin = minute(c_time);
-    }
-
-delay(200);
-
-}
-*/
 
 
 // print time to serial monitor
@@ -438,25 +387,116 @@ void printTime() {
 }
 
 
-// set time in RTC
-//
-void setTime() {
-  // Set the time and date on the chip.
-  RTC.set(c_time);
+
+// search for DCF77 signal
+// 
+void signalSearch() {
+
+  const uint16_t red =  matrix.Color(255, 0, 0);
+  const uint16_t blue =  matrix.Color(0, 0, 255);
+  matrix.fillScreen(0);
+  
+  matrix.drawPixel(1, 0, red);  // S
+  delay(100);
+  matrix.show();
+  matrix.drawPixel(3, 0, red);  // I
+  delay(100);
+  matrix.show();
+  matrix.drawPixel(10, 1, red); // G
+  delay(100);
+  matrix.show();
+  matrix.drawPixel(5, 3, red);  // N
+  delay(100);
+  matrix.show();
+  matrix.drawPixel(8, 3, red);  // A
+  delay(100);
+  matrix.show();
+  matrix.drawPixel(6, 4, red);  // L
+  delay(100);
+  matrix.show();
+  matrix.drawPixel(3, 5, blue); // S
+  delay(100);
+  matrix.show();
+  matrix.drawPixel(5, 6, blue); // U
+  delay(100);
+  matrix.show();
+  matrix.drawPixel(2, 7, blue); // C
+  delay(100);
+  matrix.show();
+  matrix.drawPixel(3, 7, blue); // H
+  delay(100);
+  matrix.show();
+  matrix.drawPixel(4, 8, blue); // E
+  delay(100);
+  matrix.show();
+  delay(5000);
+
+  // !!! LEDs have to be switched off during signal search !!!
+  // possibly because interrupts are disabled when LEDs are switched on
+  matrix.fillScreen(0);
+  matrix.show();
+
+  DCF.Start();
+  time_t DCFtime = 0;
+  while (DCFtime == 0) {
+    DCFtime = DCF.getTime();
+    if (DCFtime!=0) {
+      RTC.set(DCFtime);
+    }
+  }
+  DCF.Stop();
 }
 
-
-// read time from RTC and synchronize with DCF if available
+// display scrolling text when time is updated
 //
-void readTime() {
-  
-  time_t DCFtime = DCF.getTime();
-  if (DCFtime!=0)
-  {
-    RTC.set(DCFtime);
+void printUpdated() {
+  const uint16_t color =  matrix.Color(255, 0, 0);
+  matrix.setTextColor(color); 
+  for (int i=0; i<2; i++) {
+  int  x = matrix.width();
+    while (x>-20) {
+      matrix.fillScreen(0);
+      matrix.setCursor(x, 2);
+      matrix.print("******");
+      matrix.show();
+      x--;
+      delay(100);
+    }
   }
-  c_time = RTC.get();
   
+}
+
+// new year count down
+//
+void newYear() {
+  // count down from 10
+  matrix.setCursor(0, 2);
+  for (int i=10; i>0; --i) {
+    char buf[1];
+    sprintf(buf, "%d", i);
+    const uint16_t color =  matrix.Color(random(0,255), random(0,255), random(0,255));
+    matrix.setTextColor(color);
+    matrix.fillScreen(0);
+    matrix.print(buf);
+    matrix.show();
+    matrix.setCursor(3, 2);
+    delay(1000);
+  }
+  gocrazy();
+  // scroll text
+  const uint16_t colors[] = { matrix.Color(255, 0, 0), matrix.Color(0, 255, 0), matrix.Color(0, 0, 255) };
+  for (int i=0; i<3; i++) {
+    int  x = matrix.width();
+    matrix.setTextColor(colors[i]);
+    while (x>-90) {
+      matrix.fillScreen(0);
+      matrix.setCursor(x, 2);
+      matrix.print("HAPPY NEW YEAR!");
+      matrix.show();
+      x--;
+      delay(100);
+    }
+  } 
 }
 
 // read temperature from DS3231
@@ -621,54 +661,6 @@ void lightup(int Word[], int effect) {
   }
 }
 
-// light up word on display with typing effect
-//
-/*
-void lightup_typing(int Word[]) {
-  uint32_t Colour = pixels.Color(random(0,255),random(0,255),random(0,255)); //choose random color
-  for (int i = 0; i < 12; i++) {
-    if(Word[i]==-1) break;
-   
-    //Serial.print("lighting up pixel ");
-    //Serial.println(Word[i]);
-  } 
-}
-
-// light up word on display with scroll down effect
-//
-void lightup_scroll(int Word[]) {
-  uint32_t Colour = pixels.Color(random(0,255),random(0,255),random(0,255)); //choose random color
-  for (int i = 0; i < 12; i++) {
-    if(Word[i]==-1) break;
-    int row = Word[i]/11;
-    int column;
-    if ((row % 2) == 0) {
-      column = Word[i]-row*11;
-    }
-    else {
-      column = row*11+10-Word[i];
-    }
-    for (int j=0; j<row; j++) {
-      int x;
-      if ((j%2) == 0) {
-        x = column+j*11;
-      }
-      else {
-        x = j*11+10-column;
-      }
-      pixels.setPixelColor(x, Colour);
-      pixels.show();
-      delay(30);
-      pixels.setPixelColor(x, Black);
-      pixels.show();
-    }
-    pixels.setPixelColor(Word[i], Colour);
-    pixels.show();
-    //Serial.print("lighting up pixel ");
-    //Serial.println(Word[i]);
-  } 
-}
-*/
 
 // clear all pixels
 //
@@ -731,8 +723,6 @@ void test() {
   Serial.println("Running LED test...");
   blank();
   wipe();
-  blank();
-  gocrazy();
   blank();
 }
 

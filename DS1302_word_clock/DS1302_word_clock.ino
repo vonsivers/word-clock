@@ -1,5 +1,5 @@
 /* 
- *  Code adapted from WhiteClockCompany WordClock2
+ *  Code by Moritz v. Sivers
 */
 
 // load libraries
