@@ -55,6 +55,9 @@ Adafruit_NeoMatrix matrix = Adafruit_NeoMatrix(11, 10, PIN,
 // minute of last display update
 int lastmin;
 
+// Daylight Saving Time variable
+int DST;
+
 time_t c_time; // structure for current time
 DCF77 DCF = DCF77(DCF_PIN,DCF_INTERRUPT); // Create a DCF object
 
@@ -141,14 +144,16 @@ void loop()
  //readout RTC time 
  c_time = RTC.get();
 
+ // update DCF signal when daylight saving time changes
+ checkDST();
+
  // new year gimmick
  if ( (month(c_time) == 12) && (day(c_time)==31) && (hour(c_time)==23) && (minute(c_time)==59) && (abs(second(c_time)-50)<1) ) {
   newYear();
-  signalSearch(); // update DCF time once a year
  }
 
-  // show temperature on second 30
-  if(abs(second(c_time)-30)<1) {
+  // show temperature on second 30 every two minutes
+  if(abs(second(c_time)-30)<1 && minute(c_time)%2==0) {
     displayTemp();
     updateDisplay(false);
   }
@@ -466,6 +471,17 @@ void printUpdated() {
   
 }
 
+// adjust for European Daylight Saving Time
+void checkDST() {
+  if (weekday(c_time) == 7 && month(c_time) == 10 && day(c_time) >= 25 && hour(c_time) == 2 && minute(c_time) == 59 && (abs(second(c_time)-58)<2)) {
+    signalSearch();
+  }
+  else if (weekday(c_time) == 7 && month(c_time) == 3 && day(c_time) >= 25 && hour(c_time) == 1 && minute(c_time) == 59 && (abs(second(c_time)-58)<2)) {
+    signalSearch(); 
+  }
+  
+}
+
 // new year count down
 //
 void newYear() {
@@ -517,7 +533,7 @@ float tempDS3231() {
 // display temperature as scrolling text
 //
 void displayTemp() {
-  int temp = (int) tempDS3231();
+  int temp = (int) tempDS3231() - 2; // temperature of chip is about 2° higher than RT
   char buf[6];
   sprintf(buf, "%d", temp); 
   int red = map(temp, 10, 30, 0, 255);
