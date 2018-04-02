@@ -399,7 +399,7 @@ void signalSearch() {
 
   const uint16_t red =  matrix.Color(255, 0, 0);
   const uint16_t blue =  matrix.Color(0, 0, 255);
-  matrix.fillScreen(0);
+  blank();
   
   matrix.drawPixel(1, 0, red);  // S
   delay(100);
@@ -438,12 +438,18 @@ void signalSearch() {
 
   // !!! LEDs have to be switched off during signal search !!!
   // possibly because interrupts are disabled when LEDs are switched on
-  matrix.fillScreen(0);
-  matrix.show();
+  blank();
 
   DCF.Start();
+  unsigned long StartTime = millis();
   time_t DCFtime = 0;
   while (DCFtime == 0) {
+    // restart DCF search after 5 minutes
+    unsigned long CurrentTime = millis();
+    unsigned long ElapsedTime = CurrentTime - StartTime;
+    if (ElapsedTime > 1000*60*5) {
+       signalSearch();
+    }
     DCFtime = DCF.getTime();
     if (DCFtime!=0) {
       RTC.set(DCFtime);
