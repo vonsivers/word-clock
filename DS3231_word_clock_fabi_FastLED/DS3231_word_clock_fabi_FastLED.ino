@@ -35,8 +35,8 @@
 #define POTI_THRES  50
 
 // minimum, maximum brightness of clock
-#define BRIGHTNESS_MIN  40 
-#define BRIGHTNESS_MAX  255
+//#define BRIGHTNESS_MIN  100 
+//#define BRIGHTNESS_MAX  255
 
 // setup LED strip
 //Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ800); 
@@ -50,9 +50,17 @@ int lastmin;
 time_t c_time; // structure for current time
 
 int onbutton; // button to switch LEDs on
-int brightness_lamp; // brightness of white LEDs
-int brightness_clock_old = 127; // previous brightness of clock LEDs
-int brightness_clock_new = 127; // new brightness of clock LEDs
+int brightness_clock = 127;
+//int brightness_lamp; // brightness of white LEDs
+//int brightness_clock_old = 255; // previous brightness of clock LEDs
+//int brightness_clock_new = 255; // new brightness of clock LEDs
+int colour1 = random(0,255); // color of words
+int colour2 = random(0,255); 
+int colour3 = random(0,255); 
+int colour4 = random(0,255); 
+int colour5 = random(0,255);
+int colour6 = random(0,255);
+int colour_dots = random(0,255); // color of dots 
 
 int freePixel[NUMPIXELS]; // 1 if pixel is not in use by clock otherwise 0
 
@@ -89,7 +97,7 @@ void setup()
   Wire.begin();
   FastLED.addLeds<WS2812B, PIN, GRB>(leds, NUMPIXELS);
   FastLED.setBrightness(BRIGHTNESS);
-  FastLED.setTemperature(HighPressureSodium); 
+  //FastLED.setTemperature(HighPressureSodium); 
   Serial.begin(9600);
   pinMode(PIN_hour, INPUT_PULLUP);
   pinMode(PIN_min,INPUT_PULLUP);
@@ -98,7 +106,7 @@ void setup()
   LEDsOff();
   
   c_time = RTC.get(); // read current RTC time
-  updateDisplay(false); // show time on display
+  updateDisplay(0); // show time on display
 
   lastmin = minute(c_time); // initialize last update of display
 
@@ -116,15 +124,24 @@ void loop()
   // check if LEDs are switched on
   if (onbutton==LOW) {
     readPoti();
-    readLDR();
+    //readLDR();
 
-    lightLamp(); // light up lamp
-    updateClockBrightness(); // update clock brightness
+    //lightLamp(); // light up lamp
+    //updateClockBrightness(); // update clock brightness
 
     // change time  every minute
     if((minute(c_time) > lastmin) || (minute(c_time) == 0 && lastmin == 59)) {
-      updateDisplay(false);
+      colour1 = random(0,255); // color of words
+      colour2 = random(0,255); 
+      colour3 = random(0,255); 
+      colour4 = random(0,255); 
+      colour5 = random(0,255);
+      colour_dots = random(0,255); // color of dots
+      updateDisplay(2);
       lastmin = minute(c_time);
+    }
+    else {
+      updateDisplay(0);
     }
   }
   else {      // LEDs are switched off
@@ -136,14 +153,14 @@ void loop()
 
 // shows time on LED strip
 //
-void updateDisplay(bool timeset) {
+void updateDisplay(int property) {
 
   // number of dots 
   int ndots = (minute(c_time) % 5);
 
   // choose display effect
   int effect;
-  if (timeset) {          // no effect when setting time
+  if (property<2) {          // no effect when setting time
     effect = 0;
   }
   else {
@@ -156,12 +173,12 @@ void updateDisplay(bool timeset) {
   }
 
   // blank all pixels
-  blank();
+  if (property>0)  blank();
   
    // for "typing" or no effect light up "ES IST" first
   if (effect == 2 || effect == 0) {
-    lightup(ES,effect);
-    lightup(IST,effect);
+    lightup(ES,colour1,effect);
+    lightup(IST,colour2,effect);
   }
 
   // light up minutes and hours
@@ -169,173 +186,173 @@ void updateDisplay(bool timeset) {
                 case 0:
                     // glatte Stunde
                     if (effect == 1) {
-                      lightup(UHR,effect);
-                      setHours(hour(c_time),true,effect);
+                      lightup(UHR,colour4,effect);
+                      setHours(hour(c_time),true,colour3,effect);
                     }
                     else {
-                      setHours(hour(c_time),true,effect);
-                      lightup(UHR,effect);
+                      setHours(hour(c_time),true,colour3,effect);
+                      lightup(UHR,colour4,effect);
                     }
                     
                     break;
                 case 1:
                     // 5 nach
                     if (effect == 1) {
-                      setHours(hour(c_time),false,effect);
-                      lightup(NACH,effect);
-                      lightup(FUENF_M,effect);
+                      setHours(hour(c_time),false,colour5,effect);
+                      lightup(NACH,colour4,effect);
+                      lightup(FUENF_M,colour3,effect);
                     }
                     else {
-                      lightup(FUENF_M,effect);
-                      lightup(NACH,effect);
-                      setHours(hour(c_time),false,effect);
+                      lightup(FUENF_M,colour3,effect);
+                      lightup(NACH,colour4,effect);
+                      setHours(hour(c_time),false,colour5,effect);
                     }
                     break;
                 case 2:
                     // 10 nach
                     if (effect == 1) {
-                      setHours(hour(c_time),false,effect);
-                      lightup(NACH,effect);
-                      lightup(ZEHN_M,effect);
+                      setHours(hour(c_time),false,colour5,effect);
+                      lightup(NACH,colour4,effect);
+                      lightup(ZEHN_M,colour3,effect);
                     }
                     else {
-                      lightup(ZEHN_M,effect);
-                      lightup(NACH,effect);
-                      setHours(hour(c_time),false,effect);
+                      lightup(ZEHN_M,colour5,effect);
+                      lightup(NACH,colour4,effect);
+                      setHours(hour(c_time),false,colour3,effect);
                     }
                     break;
                 case 3:
                     // viertel nach
                     if (effect == 1) {
-                      setHours(hour(c_time),false,effect);
-                      lightup(NACH,effect);
-                      lightup(VIERTEL,effect);
+                      setHours(hour(c_time),false,colour5,effect);
+                      lightup(NACH,colour4,effect);
+                      lightup(VIERTEL,colour3,effect);
                     }
                     else {
-                      lightup(VIERTEL,effect);
-                      lightup(NACH,effect);
-                      setHours(hour(c_time),false,effect);
+                      lightup(VIERTEL,colour5,effect);
+                      lightup(NACH,colour4,effect);
+                      setHours(hour(c_time),false,colour3,effect);
                     }
                     
                     break;
                 case 4:
                     // 20 nach
                      if (effect == 1) {
-                      setHours(hour(c_time),false,effect);
-                      lightup(NACH,effect);
-                      lightup(ZWANZIG,effect);
+                      setHours(hour(c_time),false,colour3,effect);
+                      lightup(NACH,colour4,effect);
+                      lightup(ZWANZIG,colour5,effect);
                      }
                      else {
-                      lightup(ZWANZIG,effect);
-                      lightup(NACH,effect);
-                      setHours(hour(c_time),false,effect);
+                      lightup(ZWANZIG,colour5,effect);
+                      lightup(NACH,colour4,effect);
+                      setHours(hour(c_time),false,colour3,effect);
                      }
                     break;
                 case 5:
                     // 5 vor halb
                      if (effect == 1) {
-                      setHours(hour(c_time) + 1,false,effect);
-                      lightup(HALB,effect);
-                      lightup(VOR,effect);
-                      lightup(FUENF_M,effect);
+                      setHours(hour(c_time) + 1,false,colour3,effect);
+                      lightup(HALB,colour5,effect);
+                      lightup(VOR,colour4,effect);
+                      lightup(FUENF_M,colour6,effect);
                      }
                      else {
-                      lightup(FUENF_M,effect);
-                      lightup(VOR,effect);
-                      lightup(HALB,effect);
-                      setHours(hour(c_time) + 1,false,effect);
+                      lightup(FUENF_M,colour6,effect);
+                      lightup(VOR,colour4,effect);
+                      lightup(HALB,colour5,effect);
+                      setHours(hour(c_time) + 1,false,colour3,effect);
                      }
                    
                     break;
                 case 6:
                     // halb
                     if (effect == 1) {
-                      setHours(hour(c_time) + 1,false,effect);
-                      lightup(HALB,effect);
+                      setHours(hour(c_time) + 1,false,colour3,effect);
+                      lightup(HALB,colour5,effect);
                     }
                     else {
-                      lightup(HALB,effect);
-                      setHours(hour(c_time) + 1,false,effect);
+                      lightup(HALB,colour5,effect);
+                      setHours(hour(c_time) + 1,false,colour3,effect);
                     }
                     break;
                 case 7:
                     // 5 nach halb
                     if (effect == 1) {
-                      setHours(hour(c_time) + 1,false,effect);
-                      lightup(HALB,effect);
-                      lightup(NACH,effect);
-                      lightup(FUENF_M,effect);
+                      setHours(hour(c_time) + 1,false,colour3,effect);
+                      lightup(HALB,colour5,effect);
+                      lightup(NACH,colour4,effect);
+                      lightup(FUENF_M,colour6,effect);
                     }
                     else {
-                      lightup(FUENF_M,effect);
-                      lightup(NACH,effect);
-                      lightup(HALB,effect);
-                      setHours(hour(c_time) + 1,false,effect);
+                      lightup(FUENF_M,colour6,effect);
+                      lightup(NACH,colour4,effect);
+                      lightup(HALB,colour5,effect);
+                      setHours(hour(c_time) + 1,false,colour3,effect);
                     }
                     
                     break;
                 case 8:
                     // 20 vor
                      if (effect == 1) {
-                      setHours(hour(c_time) + 1,false,effect);
-                      lightup(VOR,effect);
-                      lightup(ZWANZIG,effect);
+                      setHours(hour(c_time) + 1,false,colour3,effect);
+                      lightup(VOR,colour4,effect);
+                      lightup(ZWANZIG,colour5,effect);
                      }
                      else {
-                      lightup(ZWANZIG,effect);
-                      lightup(VOR,effect);
-                      setHours(hour(c_time) + 1,false,effect);
+                      lightup(ZWANZIG,colour5,effect);
+                      lightup(VOR,colour4,effect);
+                      setHours(hour(c_time) + 1,false,colour3,effect);
                      }
                     break;
                 case 9:
                     // viertel vor
                     if (effect == 1) {
-                      setHours(hour(c_time) + 1,false,effect);
-                      lightup(VOR,effect);
-                      lightup(VIERTEL,effect);
+                      setHours(hour(c_time) + 1,false,colour3,effect);
+                      lightup(VOR,colour4,effect);
+                      lightup(VIERTEL,colour5,effect);
                     }
                     else {
-                      lightup(VIERTEL,effect);
-                      lightup(VOR,effect);
-                      setHours(hour(c_time) + 1,false,effect);
+                      lightup(VIERTEL,colour5,effect);
+                      lightup(VOR,colour4,effect);
+                      setHours(hour(c_time) + 1,false,colour3,effect);
                     }
                     break;
                 case 10:
                     // 10 vor
                     if (effect == 1) {
-                      setHours(hour(c_time) + 1,false,effect);
-                      lightup(VOR,effect);
-                      lightup(ZEHN_M,effect);
+                      setHours(hour(c_time) + 1,false,colour3,effect);
+                      lightup(VOR,colour4,effect);
+                      lightup(ZEHN_M,colour5,effect);
                     }
                     else {
-                      lightup(ZEHN_M,effect);
-                      lightup(VOR,effect);
-                      setHours(hour(c_time) + 1,false,effect);
+                      lightup(ZEHN_M,colour5,effect);
+                      lightup(VOR,colour4,effect);
+                      setHours(hour(c_time) + 1,false,colour3,effect);
                     }
                     break;
                 case 11:
                     // 5 vor
                     if (effect == 1) {
-                      setHours(hour(c_time) + 1,false,effect);
-                      lightup(VOR,effect);
-                      lightup(FUENF_M,effect);
+                      setHours(hour(c_time) + 1,false,colour3,effect);
+                      lightup(VOR,colour4,effect);
+                      lightup(FUENF_M,colour5,effect);
                     }
                     else {
-                      lightup(FUENF_M,effect);
-                      lightup(VOR,effect);
-                      setHours(hour(c_time) + 1,false,effect);
+                      lightup(FUENF_M,colour5,effect);
+                      lightup(VOR,colour4,effect);
+                      setHours(hour(c_time) + 1,false,colour3,effect);
                     }
                     break;
             }
 
   // for scrolling effect light up "ES IST" last
   if (effect == 1) {
-    lightup(ES,effect);
-    lightup(IST,effect);
+    lightup(ES,colour1,effect);
+    lightup(IST,colour2,effect);
   }
 
   // always light up dots last
-  setDots(ndots, timeset);
+  setDots(ndots, property);
 
 
   // print time to serial monitor
@@ -356,7 +373,7 @@ void readButtons() {
     adjustTime(60);
     c_time = now();
     RTC.set(c_time);
-    updateDisplay(true);
+    updateDisplay(1);
     lastmin = minute(c_time);
   }
   
@@ -364,7 +381,7 @@ void readButtons() {
     adjustTime(3600);
     c_time = now();
     RTC.set(c_time);
-    updateDisplay(true);
+    updateDisplay(1);
     lastmin = minute(c_time);
    }
 
@@ -375,8 +392,15 @@ void readButtons() {
 // read potentiometer and set brightness of lamp
 //
 void readPoti() {
-
+  
   int poti = analogRead(PIN_poti);
+  
+  brightness_clock = map(poti,0,1023,0,255);
+ 
+  //Serial.println(brightness_clock);
+  
+/*
+  
 
   if (poti>POTI_THRES) {
     brightness_lamp = map(poti,POTI_THRES,1023,0,255); // map analog input values (0-1024) to brightness level (0-255)
@@ -384,11 +408,13 @@ void readPoti() {
   else {
     brightness_lamp = 0;
   }
+  */
   
 }
 
 // read LDR and adjust brightness of clock
 //
+/*
 void readLDR() {
 
   int ldr = analogRead(PIN_LDR);
@@ -396,7 +422,7 @@ void readLDR() {
   
 }
 
-
+*/
 
 // print time to serial monitor
 //
@@ -416,74 +442,75 @@ void printTime() {
 
 // light up hours on display
 //
-void setHours(byte c_hour, boolean glatt, int effect) {
+void setHours(byte c_hour, boolean glatt, int colour, int effect) {
     switch (c_hour) {
                 case 0:
                 case 12:
                 case 24:
-                    lightup(ZWOELF,effect);
+                    lightup(ZWOELF,colour,effect);
                     break;
                 case 1:
                 case 13:
                     if (glatt) {
-                        lightup(EIN,effect);
+                        lightup(EIN,colour,effect);
                     } else {
-                        lightup(EINS,effect);
+                        lightup(EINS,colour,effect);
                     }
                     break;
                 case 2:
                 case 14:
-                   lightup(ZWEI,effect);
+                   lightup(ZWEI,colour,effect);
                     break;
                 case 3:
                 case 15:
-                    lightup(DREI,effect);
+                    lightup(DREI,colour,effect);
                     break;
                 case 4:
                 case 16:
-                    lightup(VIER,effect);
+                    lightup(VIER,colour,effect);
                     break;
                 case 5:
                 case 17:
-                    lightup(FUENF_H,effect);
+                    lightup(FUENF_H,colour,effect);
                     break;
                 case 6:
                 case 18:
-                    lightup(SECHS,effect);
+                    lightup(SECHS,colour,effect);
                     break;
                 case 7:
                 case 19:
-                    lightup(SIEBEN,effect);
+                    lightup(SIEBEN,colour,effect);
                     break;
                 case 8:
                 case 20:
-                    lightup(ACHT,effect);
+                    lightup(ACHT,colour,effect);
                     break;
                 case 9:
                 case 21:
-                    lightup(NEUN,effect);
+                    lightup(NEUN,colour,effect);
                     break;
                 case 10:
                 case 22:
-                    lightup(ZEHN_H,effect);
+                    lightup(ZEHN_H,colour,effect);
                     break;
                 case 11:
                 case 23:
-                    lightup(ELF,effect);
+                    lightup(ELF,colour,effect);
                     break;
             }            
 }
 
 // light up the dots
 //
-void setDots(int nDots, bool timeset) {
+void setDots(int nDots, int property) {
   //Serial.print("Number of dots: ");
   //Serial.println(nDots);
-  uint32_t Colour = random(0,255); //choose random color
+  //uint32_t Colour = random(0,255); //choose random color
   for (int i = 0; i < nDots; i++) {
-    leds[110+i] = CHSV(Colour,255,brightness_clock_new);
+    freePixel[110+i] = 0;
+    leds[110+i] = CHSV(colour_dots,255,brightness_clock);
     FastLED.show();
-    if (!timeset) delay(50);
+    if (property==2) delay(50);
     //Serial.print("lighting up pixel ");
     //Serial.println(i);
   }
@@ -492,13 +519,13 @@ void setDots(int nDots, bool timeset) {
 
 // light up word on display
 //
-void lightup(int Word[], int effect) {
-  uint32_t Colour = random(0,255); //choose random color
+void lightup(int Word[],int Colour, int effect) {
+  //uint32_t Colour = random(0,255); //choose random color
   for (int i = 0; i < 12; i++) {
     if(Word[i]==-1) break;
     freePixel[Word[i]] = 0;   // mark pixel as occupied
     if (effect==2) {
-      leds[Word[i]] = CHSV(Colour,255,brightness_clock_new);
+      leds[Word[i]] = CHSV(Colour,255,brightness_clock);
       FastLED.show();
       delay(50);
     }
@@ -519,17 +546,17 @@ void lightup(int Word[], int effect) {
         else {
           x = j*11+10-column;
         }
-        leds[x] = CHSV(Colour,255,brightness_clock_new);
+        leds[x] = CHSV(Colour,255,brightness_clock);
         FastLED.show();
         delay(30);
-        leds[x] = CRGB(brightness_lamp,brightness_lamp,brightness_lamp);   // change color back to white with defined brightness
+        leds[x] = CRGB::Black;   // change color back to white with defined brightness
         FastLED.show();
       }
-      leds[Word[i]] = CHSV(Colour,255,brightness_clock_new);
+      leds[Word[i]] = CHSV(Colour,255,brightness_clock);
       FastLED.show();
     }
     else {
-      leds[Word[i]] = CHSV(Colour,255,brightness_clock_new);
+      leds[Word[i]] = CHSV(Colour,255,brightness_clock);
       FastLED.show();
     }
   }
@@ -537,6 +564,7 @@ void lightup(int Word[], int effect) {
 
 // light up the lamp LEDs
 //
+/*
 void lightLamp() {
 
   for (int i=0; i<NUMPIXELS-4; i++) {   // iterate through all pixels, dots are not used for lamp
@@ -547,15 +575,23 @@ void lightLamp() {
   FastLED.show();
  
 }
+*/
 
+/*
 void updateClockBrightness() {
   for (int i=0;i<NUMPIXELS;i++) {
     if (freePixel[i] == 0) { // pixel belongs to clock
-      leds[i] *= brightness_clock_new/brightness_clock_old;
+      leds[i]+= brightness_clock_new - brightness_clock_old;
+      //leds[i] *= scaling;
+      Serial.print("brightness old: ");
+      Serial.println(brightness_clock_old);
+      Serial.print("brightness new: ");
+      Serial.println(brightness_clock_new);
     }
   }
   brightness_clock_old = brightness_clock_new;
 }
+*/
 
 // clear all pixels
 //
@@ -563,7 +599,7 @@ void blank() {
 
   // turn all letters to white
   for (int i = 0; i < NUMPIXELS-4; ++i) {
-    leds[i] = CRGB(brightness_lamp,brightness_lamp,brightness_lamp);
+    leds[i] = CRGB::Black;
     freePixel[i] = 1;                     // mark pixel as free
   }
   // turn dots black
